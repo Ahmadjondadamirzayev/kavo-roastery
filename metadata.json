@@ -1,0 +1,6 @@
+{
+  "name": "Kavo Roastery",
+  "description": "Artisanal specialty coffee storefront with UZ/RU/EN localization, custom espresso & pour-over ordering, and a real-time Google-authenticated barista admin console.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
