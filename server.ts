@@ -391,7 +391,7 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (req: Request, res: Response) => {
@@ -408,10 +408,17 @@ async function startServer() {
     });
   }
 
-  const port = Number(process.env.PORT || 3000);
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Kavo Roastery server running on http://0.0.0.0:${port}`);
-  });
+  if (!process.env.VERCEL) {
+    const port = Number(process.env.PORT || 3000);
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Kavo Roastery server running on http://0.0.0.0:${port}`);
+    });
+  }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export { app };
+export default app;
