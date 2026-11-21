@@ -1,6 +1,6 @@
 import { ShoppingBag } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext';
-import type { Language } from '../i18n/translations';
+import type { Language } from '../lib/pricing';
 import { useCart } from '../context/CartContext';
 
 interface HeaderProps {
@@ -20,7 +20,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
   const isAdminRoute = currentPath.startsWith('/admin');
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-[#F8F7F4]/95 backdrop-blur-sm border-b border-[#E5E0D8]">
+    <header className="sticky top-0 z-40 h-16 bg-[#0B0908]/90 backdrop-blur-md border-b border-[#241D19]">
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-8">
         {/* Zone 1: Single-line Brand Wordmark */}
         <a
@@ -29,7 +29,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
             e.preventDefault();
             onNavigate('/');
           }}
-          className="font-display text-2xl font-semibold tracking-tight text-[#171614] whitespace-nowrap shrink-0"
+          className="font-display text-2xl font-semibold tracking-tight text-[#FAF6F0] whitespace-nowrap shrink-0"
         >
           {t.brand}
         </a>
@@ -37,7 +37,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
         {/* Zone 2: Clean single-line navigation links */}
         <nav
           aria-label="Primary"
-          className="hidden md:flex items-center gap-7 text-sm font-medium text-[#57534E]"
+          className="hidden md:flex items-center gap-7 text-sm font-medium text-[#B8ABA0]"
         >
           <a
             href="#menu"
@@ -45,7 +45,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               onNavigate('/', 'menu');
             }}
-            className="hover:text-[#171614] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            className="hover:text-[#FAF6F0] hover:underline underline-offset-4 decoration-[#D4A373] transition-colors whitespace-nowrap shrink-0"
           >
             {t.nav.menu}
           </a>
@@ -55,7 +55,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               onNavigate('/', 'origins');
             }}
-            className="hover:text-[#171614] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            className="hover:text-[#FAF6F0] hover:underline underline-offset-4 decoration-[#D4A373] transition-colors whitespace-nowrap shrink-0"
           >
             {t.nav.origins}
           </a>
@@ -65,7 +65,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               onNavigate('/', 'story');
             }}
-            className="hover:text-[#171614] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            className="hover:text-[#FAF6F0] hover:underline underline-offset-4 decoration-[#D4A373] transition-colors whitespace-nowrap shrink-0"
           >
             {t.nav.story}
           </a>
@@ -75,8 +75,8 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               onNavigate('/admin');
             }}
-            className={`transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-4 ${
-              isAdminRoute ? 'text-[#171614] font-semibold underline' : 'hover:text-[#171614]'
+            className={`transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-4 decoration-[#D4A373] ${
+              isAdminRoute ? 'text-[#D4A373] font-semibold underline' : 'hover:text-[#FAF6F0]'
             }`}
           >
             {t.nav.admin}
@@ -88,7 +88,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
           <div
             role="group"
             aria-label="Language"
-            className="flex items-center p-0.5 bg-[#EDE9E0] rounded-md border border-[#E5E0D8]"
+            className="flex items-center p-0.5 bg-[#161210] rounded-md border border-[#2A221D]"
           >
             {LANGUAGES.map((lang) => (
               <button
@@ -97,8 +97,8 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
                 onClick={() => setLanguage(lang.code)}
                 className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   language === lang.code
-                    ? 'bg-white text-[#171614] shadow-xs'
-                    : 'text-[#57534E] hover:text-[#171614]'
+                    ? 'bg-[#D4A373] text-[#0B0908] font-semibold'
+                    : 'text-[#B8ABA0] hover:text-[#FAF6F0]'
                 }`}
               >
                 {lang.label}
@@ -110,7 +110,7 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
             <button
               type="button"
               onClick={() => onNavigate('/')}
-              className="px-4 py-2 text-xs font-medium bg-[#1C1917] text-[#F8F7F4] rounded-lg hover:bg-[#2E2926] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold bg-[#D4A373] text-[#0B0908] rounded-lg hover:bg-[#E09F5A] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               {t.nav.storefront}
             </button>
@@ -118,11 +118,13 @@ export function Header({ currentPath, onNavigate }: HeaderProps) {
             <button
               type="button"
               onClick={() => setIsOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium bg-[#1C1917] text-[#F8F7F4] rounded-lg hover:bg-[#2E2926] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#D4A373] text-[#0B0908] rounded-lg hover:bg-[#E09F5A] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>{t.nav.cart}</span>
-              <span className="font-mono-tabular text-[#D4A373]">{itemCount}</span>
+              <span className="font-mono-tabular px-1.5 py-0.5 bg-[#0B0908]/15 rounded text-[11px]">
+                {itemCount}
+              </span>
             </button>
           )}
         </div>

@@ -1,3 +1,5 @@
+export type Language = 'en' | 'ru' | 'uz';
+
 export type CoffeeCategory = 'hot' | 'iced' | 'brew' | 'beans';
 export type CoffeeSize = 'S' | 'M' | 'L';
 export type RoastLevel = 'light' | 'medium' | 'dark';
@@ -46,6 +48,30 @@ export function calculateCustomizedUnitPriceCents(
   return basePriceCents + SIZE_SURCHARGE_CENTS[size] + MILK_SURCHARGE_CENTS[milkType];
 }
 
-export function formatCurrency(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+/**
+ * Centralized currency conversion & formatting synchronized to active language:
+ * - en: USD ($3.50)
+ * - ru: RUB (280 ₽)
+ * - uz: UZS (35 000 so'm)
+ */
+export function formatPrice(basePriceUSDOrCents: number, language: Language = 'en', isCents = true): string {
+  const usd = isCents ? basePriceUSDOrCents / 100 : basePriceUSDOrCents;
+
+  if (language === 'uz') {
+    const uzs = Math.round((usd * 10000) / 500) * 500;
+    const formatted = uzs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return `${formatted} so'm`;
+  }
+
+  if (language === 'ru') {
+    const rub = Math.round(usd * 80);
+    const formatted = rub.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return `${formatted} ₽`;
+  }
+
+  return `$${usd.toFixed(2)}`;
+}
+
+export function formatCurrency(cents: number, language: Language = 'en'): string {
+  return formatPrice(cents, language, true);
 }

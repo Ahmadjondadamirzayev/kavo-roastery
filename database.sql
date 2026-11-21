@@ -185,7 +185,17 @@ INSERT INTO public.products (
   '62°C haroratda bugʻlangan mayin sut koʻpigi ostidagi shirin va muvozanatli ikki karra ristretto.',
   'Colombia Huila', 'Колумбия Уила', 'Kolumbiya Uila',
   'Caramel · Toasted Almond · Milk Chocolate', 'Карамель · Жареный миндаль · Молочный шоколад', 'Karamel · Qovurilgan bodom · Sutli shokolad',
-  480, '/src/assets/images/coffee_hot_espresso_1795267521191.jpg', TRUE, TRUE
+  480, '/src/assets/images/obsidian_latte_art_1795271463478.jpg', TRUE, TRUE
+),
+(
+  'artisanal-cappuccino', 'hot',
+  'Artisanal Cappuccino', 'Классический Капучино', 'Klassik Kapuchino',
+  'Balanced 1:1:1 harmony of rich espresso, warm milk, and dense velvety microfoam dusted with raw cacao.',
+  'Идеальный баланс эспрессо, тёплого молока и плотной бархатистой пены с лёгкой пудрой какао.',
+  'Quyuq espresso, iliq sut va zich baxmal koʻpikning xom kakao sepilgan mukammal uygʻunligi.',
+  'Brazil Cerrado', 'Бразилия Серрадо', 'Braziliya Serrado',
+  'Sweet Cream · Roasted Pecan · Cacao', 'Сливки · Жареный пекан · Какао', 'Qaymoq · Qovurilgan pekan · Kakao',
+  470, '/src/assets/images/obsidian_latte_art_1795271463478.jpg', TRUE, FALSE
 ),
 (
   'gibraltar-cortado', 'hot',
@@ -195,17 +205,37 @@ INSERT INTO public.products (
   'Klassik qirrali stakanda teng nisbatda tortilgan espresso va mayin iliq sut uygʻunligi.',
   'Guatemala Antigua', 'Гватемала Антигуа', 'Gvatemala Antigua',
   'Brown Sugar · Praline · Sweet Cream', 'Тростниковый сахар · Пралине · Сливки', 'Jigarrang shakar · Praline · Qaymoq',
-  440, '/src/assets/images/coffee_hot_espresso_1795267521191.jpg', TRUE, FALSE
+  440, '/src/assets/images/obsidian_mocha_cortado_1795271464227.jpg', TRUE, FALSE
 ),
 (
-  'spiced-cardamom-latte', 'hot',
-  'Cardamom Espresso Latte', 'Латте с Кардамоном', 'Kardamonli Espresso Latte',
-  'Signature double espresso infused with freshly crushed green cardamom pods and velvety milk.',
-  'Авторский двойной эспрессо с молотым зелёным кардамоном и нежной молочной текстурой.',
-  'Yangi maydalangan yashil kardamon donalari va mayin sut bilan boyitilgan mualliflik ikki karra lattesi.',
-  'Brazil Cerrado', 'Бразилия Серрадо', 'Braziliya Serrado',
-  'Green Cardamom · Honey · Brioche', 'Зелёный кардамон · Мёд · Бриошь', 'Yashil kardamon · Asal · Briosh',
-  540, '/src/assets/images/coffee_hot_espresso_1795267521191.jpg', TRUE, FALSE
+  'single-origin-americano', 'hot',
+  'Single-Origin Americano', 'Американо Моносорт', 'Monosort Amerikano',
+  'Double shot of bright highland Arabica lengthened with 92°C remineralized water to preserve delicate crema.',
+  'Двойной эспрессо из высокогорной арабики, дополненный мягкой водой 92°C с сохранением плотной крема.',
+  'Mayin kremasini saqlagan holda 92°C minerallashgan suv bilan tayyorlangan ikki karra arabika amerikano.',
+  'Costa Rica Tarrazú', 'Коста-Рика Тарразу', 'Kosta-Rika Tarrazu',
+  'Roasted Walnut · Honey · Clean Finish', 'Грецкий орех · Мёд · Чистое послевкусие', 'Yongʻoq · Asal · Tiniq taʼm',
+  380, '/src/assets/images/coffee_hot_espresso_1795267521191.jpg', TRUE, FALSE
+),
+(
+  'belgian-dark-mocha', 'hot',
+  '70% Cacao Espresso Mocha', 'Мокко с Тёмным Какао 70%', '70% Qora Kakao Mokka',
+  'Double espresso melted into single-estate 70% dark chocolate ganache and steamed microfoam.',
+  'Двойной эспрессо на основе ганаша из тёмного шоколада 70% и нежного взбитого молока.',
+  '70% qora shokolad ganashi va bugʻlangan sut koʻpigi bilan birlashtirilgan ikki karra espresso.',
+  'Peru & Ethiopia', 'Перу и Эфиопия', 'Peru va Efiopiya',
+  'Single-Estate Cacao · Espresso · Burnt Sugar', 'Тёмный шоколад · Эспрессо · Жжёный сахар', 'Qora shokolad · Espresso · Kuygan shakar',
+  540, '/src/assets/images/obsidian_mocha_cortado_1795271464227.jpg', TRUE, FALSE
+),
+(
+  'artisanal-crema-latte', 'hot',
+  'Artisanal Crema Latte', 'Фирменный Крема Латте', 'Mualliflik Krema Latte',
+  'Generous steamed milk folded seamlessly into a sweet double espresso for slow morning rituals.',
+  'Мягкое взбитое молоко и сладкий двойной эспрессо с длительным сливочным послевкусием.',
+  'Shirin ikki karra espresso va mayin bugʻlangan sutning uzun qaymoqli uygʻunligi.',
+  'Colombia Cauca', 'Колумбия Каука', 'Kolumbiya Kauka',
+  'Brioche · Dulce de Leche · Vanilla Bean', 'Бриошь · Варёная сгущёнка · Ваниль', 'Briosh · Karamel · Vanil',
+  490, '/src/assets/images/obsidian_latte_art_1795271463478.jpg', TRUE, FALSE
 ),
 (
   'kyoto-cold-brew', 'iced',
@@ -218,24 +248,14 @@ INSERT INTO public.products (
   520, '/src/assets/images/coffee_iced_coldbrew_1795267521843.jpg', TRUE, TRUE
 ),
 (
-  'iced-espresso-tonic', 'iced',
-  'Botanical Espresso Tonic', 'Эспрессо Тоник с Розмарином', 'Botanik Espresso Tonik',
-  'Bright, floral Ethiopian espresso poured gently over hand-cut crystal ice and dry botanical quinine tonic.',
-  'Цветочный эфиопский эспрессо поверх кристального льда и сухого ботанического тоника.',
-  'Shaffof muz va quruq botanik tonik ustiga quyilgan gulli Efiopiya espressosi.',
-  'Ethiopia Yirgacheffe', 'Эфиопия Иргачеффе', 'Efiopiya Yirgacheffe',
-  'Grapefruit Zest · Jasmine · Crisp Tonic', 'Цедра грейпфрута · Жасмин · Тоник', 'Greypfrut poʻsti · Yasmin · Tonik',
-  550, '/src/assets/images/coffee_iced_coldbrew_1795267521843.jpg', TRUE, FALSE
-),
-(
-  'shakerato-freddo', 'iced',
-  'Milanese Shakerato', 'Шейкерато по-Милански', 'Milancha Shakerato',
-  'Double espresso vigorously shaken with crushed ice and raw demerara for an airy, chilled crema.',
-  'Двойной эспрессо, взбитый со льдом и тростниковым сахаром в шейкере до воздушной пены.',
-  'Muz va xom qamish shakari bilan sheykerda koʻpirtirilgan salqin va yengil koʻpikli ikki karra espresso.',
-  'Colombia Cauca', 'Колумбия Каука', 'Kolumbiya Kauka',
-  'Dark Cocoa · Burnt Caramel · Velvety Foam', 'Тёмное какао · Жжёная карамель · Нежная пена', 'Qora kakao · Qovurilgan karamel · Mayin koʻpik',
-  490, '/src/assets/images/coffee_iced_coldbrew_1795267521843.jpg', TRUE, FALSE
+  'iced-caramel-macchiato', 'iced',
+  'Iced Caramel Macchiato', 'Айс Карамель Маккиато', 'Muzdek Karamel Makkiato',
+  'Chilled milk poured over crystal ice, crowned with double espresso and house-scorched amber caramel.',
+  'Холодное молоко со льдом, увенчанное двойным эспрессо и домашней янтарной карамелью.',
+  'Shaffof muzli sovuq sut ustiga quyilgan ikki karra espresso va uy karamelining muvozanati.',
+  'Brazil & Honduras', 'Бразилия и Гондурас', 'Braziliya va Gonduras',
+  'Amber Caramel · Espresso Crema · Sea Salt', 'Янтарная карамель · Эспрессо · Морская соль', 'Qahrabo karamel · Espresso · Dengiz tuzi',
+  560, '/src/assets/images/obsidian_iced_macchiato_1795271463345.jpg', TRUE, TRUE
 ),
 (
   'yirgacheffe-v60', 'brew',
@@ -248,28 +268,8 @@ INSERT INTO public.products (
   580, '/src/assets/images/coffee_v60_pourover_1795267521137.jpg', TRUE, TRUE
 ),
 (
-  'pink-bourbon-chemex', 'brew',
-  'Colombia Pink Bourbon Chemex', 'Колумбия Розовый Бурбон Кемекс', 'Kolumbiya Pushti Burbon Chemex',
-  'Clean, tea-like clarity through thick bonded Chemex paper with vibrant red berry sweetness.',
-  'Чистейшее чайное тело через плотный фильтр Chemex с яркой сладостью красных ягод.',
-  'Qalin Chemex filtri orqali damlangan, qizil rezavorlar shirinligiga boy tiniq choynamo qahva.',
-  'Huila, 1850m', 'Уила, 1850м', 'Uila, 1850m',
-  'Pink Grapefruit · Raspberry · Honey', 'Розовый грейпфрут · Малина · Мёд', 'Pushti greypfrut · Malina · Asal',
-  640, '/src/assets/images/coffee_v60_pourover_1795267521137.jpg', TRUE, FALSE
-),
-(
-  'kenya-aeropress', 'brew',
-  'Kenya Peaberry AeroPress', 'Кения Пиберри АэроПресс', 'Keniya Peaberry AeroPress',
-  'Full-bodied immersion-pressure extraction yielding rich sweetness and sparkling berry aromatics.',
-  'Плотная экстракция под давлением в AeroPress с глубокой сладостью и ягодным ароматом.',
-  'AeroPress bosimi ostida tayyorlangan toʻliq tanali, boy shirinlik va rezavorli xushboʻylik.',
-  'Kirinyaga, 1750m', 'Кириньяга, 1750м', 'Kirinyaga, 1750m',
-  'Cranberry · Cane Sugar · Hibiscus', 'Клюква · Тростниковый сахар · Гибискус', 'Klyukva · Qamish shakari · Gibiskus',
-  560, '/src/assets/images/coffee_v60_pourover_1795267521137.jpg', TRUE, FALSE
-),
-(
   'guji-natural-beans', 'beans',
-  'Ethiopia Guji Natural — Whole Bean', 'Эфиопия Гуджи Натурал — Зерно', 'Efiopiya Guji Natural — Butun Don',
+  'Ethiopian Single-Origin Beans', 'Эфиопия Гуджи — Зерно', 'Efiopiya Guji — Butun Don',
   'Sun-dried natural process highland beans roasted weekly in small batches for filter or modern espresso.',
   'Высокогорное зерно натуральной сушки, обжаренное малыми партиями под фильтр и современный эспрессо.',
   'Filter va zamonaviy espresso uchun kichik partiyalarda qovurilgan quyoshda quritilgan togʻ donalari.',
@@ -278,13 +278,13 @@ INSERT INTO public.products (
   1850, '/src/assets/images/coffee_specialty_beans_1795267522312.jpg', TRUE, TRUE
 ),
 (
-  'gesha-reserve-beans', 'beans',
-  'Panama Boquete Gesha — Reserve', 'Панама Бокете Гейша — Резерв', 'Panama Boquete Gesha — Rezerv',
-  'Rare micro-lot washed Gesha showcasing extraordinary floral aromatics and silky bergamot finish.',
-  'Редкий микролот мытой Гейши с выдающимся цветочным букетом и шёлковым послевкусием бергамота.',
-  'Betakror gulli xushboʻylik va mayin bergamot taʼmiga ega noyob yuvilgan Gesha mikroloti.',
-  'Boquete, Panama', 'Бокете, Панама', 'Boquete, Panama',
-  'Orange Blossom · Bergamot · Nectarine', 'Цветы апельсина · Бергамот · Нектарин', 'Apelsin guli · Bergamot · Nektarin',
-  2900, '/src/assets/images/coffee_specialty_beans_1795267522312.jpg', TRUE, FALSE
+  'colombia-pink-bourbon-beans', 'beans',
+  'Colombian Pink Bourbon Beans', 'Колумбия Розовый Бурбон — Зерно', 'Kolumbiya Pushti Burbon — Butun Don',
+  'Rare micro-lot washed Pink Bourbon showcasing vibrant red berry aromatics and silky caramel sweetness.',
+  'Редкий микролот мытого Розового Бурбона с яркой ягодной ароматикой и шёлковой карамелью.',
+  'Yorqin qizil rezavor xushboʻyligi va mayin karamel shirinligiga ega noyob Pushti Burbon mikroloti.',
+  'Huila, Colombia', 'Уила, Колумбия', 'Uila, Kolumbiya',
+  'Raspberry · Pink Grapefruit · Honey', 'Малина · Розовый грейпфрут · Мёд', 'Malina · Pushti greypfrut · Asal',
+  2200, '/src/assets/images/coffee_specialty_beans_1795267522312.jpg', TRUE, FALSE
 )
 ON CONFLICT (slug) DO NOTHING;

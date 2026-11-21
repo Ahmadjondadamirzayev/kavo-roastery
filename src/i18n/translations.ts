@@ -1,4 +1,6 @@
-export type Language = 'en' | 'ru' | 'uz';
+import type { Language } from '../lib/pricing';
+
+export type { Language };
 
 export interface TranslationDictionary {
   brand: string;
@@ -318,8 +320,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       bagWeightLabel: 'Bag Weight',
       sizes: {
         S: 'Small · 250 ml',
-        M: 'Medium · 350 ml (+$0.70)',
-        L: 'Large · 450 ml (+$1.40)',
+        M: 'Medium · 350 ml',
+        L: 'Large · 450 ml',
       },
       bagSizes: {
         S: '250g Bag',
@@ -336,9 +338,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       milks: {
         none: 'Black / No Milk',
         whole: 'Whole Farm Milk',
-        oat: 'Barista Oat (+$0.80)',
-        almond: 'Roasted Almond (+$0.80)',
-        coconut: 'Organic Coconut (+$0.90)',
+        oat: 'Barista Oat',
+        almond: 'Roasted Almond',
+        coconut: 'Organic Coconut',
       },
       sugarLabel: 'Sweetness Level',
       sugarLevels: {
@@ -402,9 +404,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       backToStore: 'Storefront',
       signOut: 'Sign Out',
       greetings: {
-        morning: 'Good Morning & Welcome, Barista Master!',
-        afternoon: 'Good Afternoon & Welcome, Barista Master!',
-        evening: 'Good Evening & Welcome, Barista Master!',
+        morning: 'Hello and welcome — Good Morning, Barista Master!',
+        afternoon: 'Hello and welcome — Good Afternoon, Barista Master!',
+        evening: 'Hello and welcome — Good Evening, Barista Master!',
       },
       loginPrompt: 'Please sign in with Google to continue.',
       signInGoogle: 'Sign in with Google',
@@ -459,7 +461,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
         originEn: 'Origin',
         tastingNotesEn: 'Tasting Notes',
         category: 'Category',
-        priceUsd: 'Base Price ($)',
+        priceUsd: 'Base Price',
         createProduct: 'Save to Menu',
         creating: 'Saving...',
         inStock: 'Available',
@@ -562,8 +564,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       bagWeightLabel: 'Вес Упаковки',
       sizes: {
         S: 'Малый · 250 мл',
-        M: 'Средний · 350 мл (+$0.70)',
-        L: 'Большой · 450 мл (+$1.40)',
+        M: 'Средний · 350 мл',
+        L: 'Большой · 450 мл',
       },
       bagSizes: {
         S: 'Пачка 250г',
@@ -580,9 +582,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       milks: {
         none: 'Чёрный / Без молока',
         whole: 'Фермерское цельное',
-        oat: 'Овсяное Бариста (+$0.80)',
-        almond: 'Миндальное (+$0.80)',
-        coconut: 'Кокосовое (+$0.90)',
+        oat: 'Овсяное Бариста',
+        almond: 'Миндальное',
+        coconut: 'Кокосовое',
       },
       sugarLabel: 'Уровень Сахара',
       sugarLevels: {
@@ -646,9 +648,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       backToStore: 'На Витрину',
       signOut: 'Выйти',
       greetings: {
-        morning: 'Доброе утро и добро пожаловать, Мастер Бариста!',
-        afternoon: 'Добрый день и добро пожаловать, Мастер Бариста!',
-        evening: 'Добрый вечер и добро пожаловать, Мастер Бариста!',
+        morning: 'Привет, добро пожаловать — Доброе утро, Мастер Бариста!',
+        afternoon: 'Привет, добро пожаловать — Добрый день, Мастер Бариста!',
+        evening: 'Привет, добро пожаловать — Добрый вечер, Мастер Бариста!',
       },
       loginPrompt: 'Пожалуйста, войдите через Google, чтобы продолжить.',
       signInGoogle: 'Войти через Google',
@@ -703,7 +705,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
         originEn: 'Регион',
         tastingNotesEn: 'Вкусовые ноты',
         category: 'Категория',
-        priceUsd: 'Базовая цена ($)',
+        priceUsd: 'Базовая цена',
         createProduct: 'Сохранить в Меню',
         creating: 'Сохранение...',
         inStock: 'В наличии',
@@ -806,8 +808,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       bagWeightLabel: 'Paket Vazni',
       sizes: {
         S: 'Kichik · 250 ml',
-        M: 'Oʻrta · 350 ml (+$0.70)',
-        L: 'Katta · 450 ml (+$1.40)',
+        M: 'Oʻrta · 350 ml',
+        L: 'Katta · 450 ml',
       },
       bagSizes: {
         S: '250g Paket',
@@ -824,9 +826,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       milks: {
         none: 'Qora / Sutsiz',
         whole: 'Tabiiy sigir suti',
-        oat: 'Barista suli suti (+$0.80)',
-        almond: 'Bodom suti (+$0.80)',
-        coconut: 'Kokos suti (+$0.90)',
+        oat: 'Barista suli suti',
+        almond: 'Bodom suti',
+        coconut: 'Kokos suti',
       },
       sugarLabel: 'Shakar Darajasi',
       sugarLevels: {
@@ -890,9 +892,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       backToStore: 'Doʻkonga',
       signOut: 'Chiqish',
       greetings: {
-        morning: 'Xayrli tong va Xush kelibsiz, Barista Ustasi!',
-        afternoon: 'Xayrli kun va Xush kelibsiz, Barista Ustasi!',
-        evening: 'Xayrli kech va Xush kelibsiz, Barista Ustasi!',
+        morning: 'Salom, xush kelibsiz — Xayrli tong, Barista Ustasi!',
+        afternoon: 'Salom, xush kelibsiz — Xayrli kun, Barista Ustasi!',
+        evening: 'Salom, xush kelibsiz — Xayrli kech, Barista Ustasi!',
       },
       loginPrompt: 'Davom etish uchun Google orqali kiring.',
       signInGoogle: 'Google bilan kirish',
@@ -947,7 +949,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
         originEn: 'Kelib chiqishi',
         tastingNotesEn: 'Taʼm notalari',
         category: 'Toifa',
-        priceUsd: 'Asosiy narx ($)',
+        priceUsd: 'Asosiy narx (USD)',
         createProduct: 'Menyuga Saqlash',
         creating: 'Saqlanmoqda...',
         inStock: 'Mavjud',

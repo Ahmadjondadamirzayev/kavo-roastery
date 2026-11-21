@@ -24,18 +24,18 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#F8F7F4] text-[#171614] flex items-center justify-center p-6">
-          <div className="max-w-md w-full bg-white border border-[#E5E0D8] rounded-xl p-8 text-center">
+        <div className="min-h-screen bg-[#0B0908] text-[#FAF6F0] flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-[#161210] border border-[#2A221D] rounded-xl p-8 text-center">
             <h1 className="font-display text-3xl font-semibold mb-3">
               Something went wrong
             </h1>
-            <p className="text-sm text-[#57534E] mb-6">
+            <p className="text-sm text-[#B8ABA0] mb-6">
               An unexpected error interrupted the roastery view. Reload the page to restore your session.
             </p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="px-5 py-2.5 bg-[#1C1917] text-[#F8F7F4] text-sm font-medium rounded-lg hover:bg-[#2E2926] transition-colors"
+              className="px-5 py-2.5 bg-[#D4A373] text-[#0B0908] text-sm font-semibold rounded-lg hover:bg-[#E09F5A] transition-colors cursor-pointer"
             >
               Reload Page
             </button>

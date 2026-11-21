@@ -5,9 +5,11 @@ import { useI18n } from '../i18n/I18nContext';
 import {
   calculateCustomizedUnitPriceCents,
   COFFEE_SIZES,
-  formatCurrency,
+  formatPrice,
+  MILK_SURCHARGE_CENTS,
   MILK_TYPES,
   ROAST_LEVELS,
+  SIZE_SURCHARGE_CENTS,
   SUGAR_LEVELS,
   type CoffeeSize,
   type MilkType,
@@ -88,7 +90,7 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -100,48 +102,50 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="customize-modal-title"
-          className="bg-[#F8F7F4] border border-[#E5E0D8] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+          className="bg-[#161210] border border-[#2E251F] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-[#FAF6F0]"
         >
           <div className="grid grid-cols-1 sm:grid-cols-12">
             {/* Visual Summary Side */}
-            <div className="sm:col-span-5 bg-white border-b sm:border-b-0 sm:border-r border-[#E5E0D8] p-5 flex flex-col justify-between">
+            <div className="sm:col-span-5 bg-[#110E0C] border-b sm:border-b-0 sm:border-r border-[#2A221D] p-5 flex flex-col justify-between">
               <div>
-                <div className="aspect-[4/3] rounded-lg overflow-hidden bg-[#EDE9E0] mb-4">
+                <div className="aspect-[4/3] rounded-lg overflow-hidden bg-[#1F1916] mb-4">
                   <CoffeeImage
                     src={product.imageUrl}
+                    slug={product.slug}
+                    category={product.category}
                     alt={name}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <p className="text-xs text-[#8B5A2B] font-medium mb-1">
+                <p className="text-xs text-[#D4A373] font-medium mb-1">
                   {t.modal.originLabel}: {origin}
                 </p>
                 <h3
                   id="customize-modal-title"
-                  className="font-display text-2xl font-semibold text-[#171614] leading-tight mb-2"
+                  className="font-display text-2xl font-semibold text-[#FAF6F0] leading-tight mb-2"
                 >
                   {name}
                 </h3>
-                <p className="text-xs text-[#57534E] leading-relaxed mb-4">
+                <p className="text-xs text-[#B8ABA0] leading-relaxed mb-4">
                   {description}
                 </p>
               </div>
-              <div className="pt-3 border-t border-[#E5E0D8]">
-                <p className="text-xs text-[#78716C] mb-1">{t.modal.tastingLabel}</p>
-                <p className="text-xs font-medium text-[#171614]">{tasting}</p>
+              <div className="pt-3 border-t border-[#2A221D]">
+                <p className="text-xs text-[#9C8F84] mb-1">{t.modal.tastingLabel}</p>
+                <p className="text-xs font-medium text-[#FAF6F0]">{tasting}</p>
               </div>
             </div>
 
             {/* Configuration Side */}
             <div className="sm:col-span-7 p-6 flex flex-col justify-between gap-5">
               <div className="flex items-center justify-between">
-                <span className="font-mono-tabular text-lg font-semibold text-[#171614]">
-                  {formatCurrency(unitPriceCents)}
+                <span className="font-mono-tabular text-lg font-semibold text-[#E09F5A]">
+                  {formatPrice(unitPriceCents, language)}
                 </span>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 text-[#57534E] hover:text-[#171614] rounded-md hover:bg-[#EDE9E0] transition-colors cursor-pointer"
+                  className="p-1.5 text-[#B8ABA0] hover:text-[#FAF6F0] rounded-md hover:bg-[#241D19] transition-colors cursor-pointer"
                   aria-label={t.modal.close}
                 >
                   <X className="w-4 h-4" />
@@ -151,30 +155,51 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
               <div className="space-y-4">
                 {/* Size Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#171614] mb-2">
+                  <label className="block text-xs font-semibold text-[#FAF6F0] mb-2">
                     {isBeans ? t.modal.bagWeightLabel : t.modal.sizeLabel}
                   </label>
                   <div className="grid grid-cols-1 gap-1.5">
-                    {COFFEE_SIZES.map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setSize(opt)}
-                        className={`text-left px-3 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
-                          size === opt
-                            ? 'bg-[#1C1917] text-[#F8F7F4] border-[#1C1917]'
-                            : 'bg-white text-[#171614] border-[#E5E0D8] hover:border-[#B6ADA0]'
-                        }`}
-                      >
-                        {isBeans ? t.modal.bagSizes[opt] : t.modal.sizes[opt]}
-                      </button>
-                    ))}
+                    {COFFEE_SIZES.map((opt) => {
+                      const extraCents = isBeans ? 0 : SIZE_SURCHARGE_CENTS[opt];
+                      const label = isBeans ? t.modal.bagSizes[opt] : t.modal.sizes[opt];
+                      const optionPrice = isBeans
+                        ? formatPrice(
+                            calculateCustomizedUnitPriceCents(
+                              product.basePriceCents,
+                              'beans',
+                              opt,
+                              'none',
+                            ),
+                            language,
+                          )
+                        : extraCents > 0
+                          ? `+${formatPrice(extraCents, language)}`
+                          : null;
+
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setSize(opt)}
+                          className={`flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
+                            size === opt
+                              ? 'bg-[#D4A373] text-[#0B0908] border-[#D4A373] font-semibold'
+                              : 'bg-[#0B0908] text-[#FAF6F0] border-[#2A221D] hover:border-[#4A3B31]'
+                          }`}
+                        >
+                          <span>{label}</span>
+                          {optionPrice && (
+                            <span className="font-mono-tabular opacity-90">{optionPrice}</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
                 {/* Roast Level */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#171614] mb-2">
+                  <label className="block text-xs font-semibold text-[#FAF6F0] mb-2">
                     {t.modal.roastLabel}
                   </label>
                   <div className="grid grid-cols-1 gap-1.5">
@@ -185,8 +210,8 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
                         onClick={() => setRoastLevel(roast)}
                         className={`text-left px-3 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
                           roastLevel === roast
-                            ? 'bg-[#1C1917] text-[#F8F7F4] border-[#1C1917]'
-                            : 'bg-white text-[#171614] border-[#E5E0D8] hover:border-[#B6ADA0]'
+                            ? 'bg-[#D4A373] text-[#0B0908] border-[#D4A373] font-semibold'
+                            : 'bg-[#0B0908] text-[#FAF6F0] border-[#2A221D] hover:border-[#4A3B31]'
                         }`}
                       >
                         {t.modal.roasts[roast]}
@@ -195,27 +220,35 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
                   </div>
                 </div>
 
-                {/* Milk Alternative (for brewed coffee & espresso) */}
+                {/* Milk Alternative */}
                 {!isBeans && (
                   <div>
-                    <label className="block text-xs font-semibold text-[#171614] mb-2">
+                    <label className="block text-xs font-semibold text-[#FAF6F0] mb-2">
                       {t.modal.milkLabel}
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
-                      {MILK_TYPES.map((milk) => (
-                        <button
-                          key={milk}
-                          type="button"
-                          onClick={() => setMilkType(milk)}
-                          className={`text-left px-3 py-2 text-xs font-medium rounded-lg border transition-colors truncate cursor-pointer ${
-                            milkType === milk
-                              ? 'bg-[#1C1917] text-[#F8F7F4] border-[#1C1917]'
-                              : 'bg-white text-[#171614] border-[#E5E0D8] hover:border-[#B6ADA0]'
-                          }`}
-                        >
-                          {t.modal.milks[milk]}
-                        </button>
-                      ))}
+                      {MILK_TYPES.map((milk) => {
+                        const surcharge = MILK_SURCHARGE_CENTS[milk];
+                        return (
+                          <button
+                            key={milk}
+                            type="button"
+                            onClick={() => setMilkType(milk)}
+                            className={`flex items-center justify-between gap-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors truncate cursor-pointer ${
+                              milkType === milk
+                                ? 'bg-[#D4A373] text-[#0B0908] border-[#D4A373] font-semibold'
+                                : 'bg-[#0B0908] text-[#FAF6F0] border-[#2A221D] hover:border-[#4A3B31]'
+                            }`}
+                          >
+                            <span className="truncate">{t.modal.milks[milk]}</span>
+                            {surcharge > 0 && (
+                              <span className="font-mono-tabular text-[11px] shrink-0">
+                                +{formatPrice(surcharge, language)}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -223,7 +256,7 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
                 {/* Sugar Level */}
                 {!isBeans && (
                   <div>
-                    <label className="block text-xs font-semibold text-[#171614] mb-2">
+                    <label className="block text-xs font-semibold text-[#FAF6F0] mb-2">
                       {t.modal.sugarLabel}
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -234,8 +267,8 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
                           onClick={() => setSugarLevel(lvl)}
                           className={`text-left px-3 py-2 text-xs font-medium rounded-lg border transition-colors truncate cursor-pointer ${
                             sugarLevel === lvl
-                              ? 'bg-[#1C1917] text-[#F8F7F4] border-[#1C1917]'
-                              : 'bg-white text-[#171614] border-[#E5E0D8] hover:border-[#B6ADA0]'
+                              ? 'bg-[#D4A373] text-[#0B0908] border-[#D4A373] font-semibold'
+                              : 'bg-[#0B0908] text-[#FAF6F0] border-[#2A221D] hover:border-[#4A3B31]'
                           }`}
                         >
                           {t.modal.sugarLevels[lvl]}
@@ -247,23 +280,23 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
               </div>
 
               {/* Quantity & Add Action */}
-              <div className="pt-4 border-t border-[#E5E0D8] flex items-center justify-between gap-3">
-                <div className="flex items-center border border-[#E5E0D8] bg-white rounded-lg">
+              <div className="pt-4 border-t border-[#2A221D] flex items-center justify-between gap-3">
+                <div className="flex items-center border border-[#2A221D] bg-[#0B0908] rounded-lg">
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="p-2.5 text-[#57534E] hover:text-[#171614] cursor-pointer"
+                    className="p-2.5 text-[#B8ABA0] hover:text-[#FAF6F0] cursor-pointer"
                     aria-label="Decrease quantity"
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="font-mono-tabular px-3 text-sm font-medium text-[#171614]">
+                  <span className="font-mono-tabular px-3 text-sm font-medium text-[#FAF6F0]">
                     {quantity}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                    className="p-2.5 text-[#57534E] hover:text-[#171614] cursor-pointer"
+                    className="p-2.5 text-[#B8ABA0] hover:text-[#FAF6F0] cursor-pointer"
                     aria-label="Increase quantity"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -274,11 +307,11 @@ export function CustomizeModal({ product, onClose }: CustomizeModalProps) {
                   type="button"
                   disabled={!product.inStock}
                   onClick={handleAdd}
-                  className="flex-1 py-3 px-4 bg-[#1C1917] text-[#F8F7F4] text-xs font-medium rounded-lg hover:bg-[#2E2926] transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                  className="flex-1 py-3 px-4 bg-[#D4A373] text-[#0B0908] text-xs font-semibold rounded-lg hover:bg-[#E09F5A] transition-colors flex items-center justify-between gap-2 cursor-pointer"
                 >
                   <span>{product.inStock ? t.modal.addToOrder : t.modal.unavailable}</span>
-                  <span className="font-mono-tabular text-[#D4A373]">
-                    {formatCurrency(totalPriceCents)}
+                  <span className="font-mono-tabular">
+                    {formatPrice(totalPriceCents, language)}
                   </span>
                 </button>
               </div>

@@ -15,8 +15,15 @@ import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
 import { useToast } from '../context/ToastContext';
 import {
+  fetchAdminLoginLogs,
+  fetchAdminOrders,
+  fetchCatalogProducts,
+  updateAdminOrderStatus,
+} from '../lib/dataService';
+import { isSupabaseConfigured } from '../lib/supabase';
+import {
   COFFEE_CATEGORIES,
-  formatCurrency,
+  formatPrice,
   ORDER_STATUSES,
   type CoffeeCategory,
   type OrderStatus,
@@ -33,7 +40,7 @@ type AdminTab = 'orders' | 'catalog' | 'logs';
 export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
   const { language, t } = useI18n();
   const {
-    firebaseUser,
+    authEmail,
     idToken,
     isAdmin,
     loading: authLoading,
@@ -74,28 +81,17 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
   }, [t]);
 
   const fetchAdminData = useCallback(async () => {
-    if (!idToken || !isAdmin) return;
+    if (!isAdmin) return;
     setLoadingData(true);
     try {
-      const headers = { Authorization: `Bearer ${idToken}` };
-      const [ordersRes, productsRes, logsRes] = await Promise.all([
-        fetch('/api/admin/orders', { headers }),
-        fetch('/api/admin/products', { headers }),
-        fetch('/api/admin/login-logs', { headers }),
+      const [ordersData, catalogData, logsData] = await Promise.all([
+        fetchAdminOrders(idToken),
+        fetchCatalogProducts(),
+        fetchAdminLoginLogs(idToken),
       ]);
-
-      if (ordersRes.ok) {
-        const d = await ordersRes.json();
-        setOrders(d.orders ?? []);
-      }
-      if (productsRes.ok) {
-        const d = await productsRes.json();
-        setProducts(d.products ?? []);
-      }
-      if (logsRes.ok) {
-        const d = await logsRes.json();
-        setLogs(d.logs ?? []);
-      }
+      setOrders(ordersData);
+      setProducts(catalogData);
+      setLogs(logsData);
     } catch (err) {
       console.error('Failed to fetch admin dashboard data:', err);
     } finally {
@@ -104,14 +100,14 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
   }, [idToken, isAdmin]);
 
   useEffect(() => {
-    if (isAdmin && idToken) {
+    if (isAdmin) {
       fetchAdminData();
     }
-  }, [isAdmin, idToken, fetchAdminData]);
+  }, [isAdmin, fetchAdminData]);
 
-  // Real-time SSE connection via authenticated fetch ReadableStream
+  // Real-time SSE connection for Express + Cloud SQL backend
   useEffect(() => {
-    if (!isAdmin || !idToken) {
+    if (!isAdmin || !idToken || isSupabaseConfigured) {
       setStreamConnected(false);
       return;
     }
@@ -198,27 +194,15 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
   }, [isAdmin, idToken, refreshToken]);
 
   const handleStatusChange = async (orderId: number, status: OrderStatus) => {
-    if (!idToken) return;
     setUpdatingOrderId(orderId);
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-
-      if (!response.ok) {
-        throw new Error('STATUS_UPDATE_FAILED');
+      const updated = await updateAdminOrderStatus(idToken, orderId, status);
+      if (updated) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? updated : o)),
+        );
+        showToast(t.toasts.statusUpdated);
       }
-
-      const data = await response.json();
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? data.order : o)),
-      );
-      showToast(t.toasts.statusUpdated);
     } catch {
       showToast(t.cart.validation.submitFailed, 'error');
     } finally {
@@ -340,30 +324,30 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
   // 1. Auth Loading Gate
   if (authLoading) {
     return (
-      <main className="min-h-[calc(100vh-4rem)] bg-[#F8F7F4] flex items-center justify-center p-6">
-        <div className="bg-white border border-[#E5E0D8] rounded-xl p-8 max-w-md w-full text-center space-y-3">
-          <Coffee className="w-8 h-8 text-[#8B5A2B] mx-auto" />
-          <p className="text-sm font-medium text-[#171614]">{t.admin.verifyingAccess}</p>
+      <main className="min-h-[calc(100vh-4rem)] bg-[#0B0908] flex items-center justify-center p-6">
+        <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-8 max-w-md w-full text-center space-y-3">
+          <Coffee className="w-8 h-8 text-[#D4A373] mx-auto" />
+          <p className="text-sm font-medium text-[#FAF6F0]">{t.admin.verifyingAccess}</p>
         </div>
       </main>
     );
   }
 
   // 2. Unauthenticated Smart Greeting + Google OAuth Gate
-  if (!firebaseUser) {
+  if (!authEmail) {
     return (
-      <main className="min-h-[calc(100vh-4rem)] bg-[#F8F7F4] flex items-center justify-center p-6">
-        <div className="bg-white border border-[#E5E0D8] rounded-xl p-8 sm:p-10 max-w-lg w-full">
-          <p className="text-xs font-medium text-[#8B5A2B] mb-2">{t.admin.consoleTitle}</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#171614] text-balance mb-3">
+      <main className="min-h-[calc(100vh-4rem)] bg-[#0B0908] flex items-center justify-center p-6">
+        <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-8 sm:p-10 max-w-lg w-full">
+          <p className="text-xs font-medium text-[#D4A373] mb-2">{t.admin.consoleTitle}</p>
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#FAF6F0] text-balance mb-3">
             {timeGreeting}
           </h1>
-          <p className="text-sm text-[#57534E] leading-relaxed mb-8">
+          <p className="text-sm text-[#B8ABA0] leading-relaxed mb-8">
             {t.admin.loginPrompt}
           </p>
 
           {authError && (
-            <div className="mb-5 p-3 bg-[#FFF5F5] border border-[#F2C6C6] rounded-lg text-xs text-[#9B1C1C]">
+            <div className="mb-5 p-3 bg-[#251212] border border-[#5C2424] rounded-lg text-xs text-[#FCA5A5]">
               {t.toasts.authError}
             </div>
           )}
@@ -373,11 +357,11 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
               type="button"
               disabled={signingIn}
               onClick={signInWithGoogle}
-              className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3 bg-[#1C1917] text-[#F8F7F4] text-sm font-medium rounded-lg hover:bg-[#2E2926] transition-colors disabled:opacity-60 cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3 bg-[#D4A373] text-[#0B0908] text-sm font-semibold rounded-lg hover:bg-[#E09F5A] transition-colors disabled:opacity-60 cursor-pointer"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                 <path
-                  fill="#EA4335"
+                  fill="#0B0908"
                   d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12S6.8 21.5 12 21.5c6.9 0 9.1-4.8 9.1-7.3 0-.5-.1-.9-.1-1.3H12z"
                 />
               </svg>
@@ -387,7 +371,7 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
             <button
               type="button"
               onClick={() => onNavigate('/')}
-              className="px-5 py-3 text-sm font-medium text-[#171614] border border-[#E5E0D8] rounded-lg hover:bg-[#EDE9E0] transition-colors cursor-pointer"
+              className="px-5 py-3 text-sm font-medium text-[#FAF6F0] border border-[#2A221D] rounded-lg hover:bg-[#241D19] transition-colors cursor-pointer"
             >
               {t.admin.backToStore}
             </button>
@@ -400,24 +384,24 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
   // 3. Authenticated Non-Admin Restriction Screen
   if (!isAdmin) {
     return (
-      <main className="min-h-[calc(100vh-4rem)] bg-[#F8F7F4] flex items-center justify-center p-6">
-        <div className="bg-white border border-[#E5E0D8] rounded-xl p-8 sm:p-10 max-w-lg w-full space-y-5">
+      <main className="min-h-[calc(100vh-4rem)] bg-[#0B0908] flex items-center justify-center p-6">
+        <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-8 sm:p-10 max-w-lg w-full space-y-5">
           <div className="flex items-start gap-3">
-            <ShieldAlert className="w-6 h-6 text-[#D97706] shrink-0 mt-0.5" />
+            <ShieldAlert className="w-6 h-6 text-[#E09F5A] shrink-0 mt-0.5" />
             <div>
-              <h1 className="font-display text-2xl sm:text-3xl font-semibold text-[#171614] mb-2">
+              <h1 className="font-display text-2xl sm:text-3xl font-semibold text-[#FAF6F0] mb-2">
                 {t.admin.restrictedTitle}
               </h1>
-              <p className="text-sm text-[#57534E] leading-relaxed">
+              <p className="text-sm text-[#B8ABA0] leading-relaxed">
                 {t.admin.restrictedBody}
               </p>
             </div>
           </div>
 
-          <div className="p-3.5 bg-[#F8F7F4] border border-[#E5E0D8] rounded-lg text-xs text-[#57534E] flex items-center justify-between gap-2">
+          <div className="p-3.5 bg-[#0B0908] border border-[#2A221D] rounded-lg text-xs text-[#B8ABA0] flex items-center justify-between gap-2">
             <span>{t.admin.signedInAs}</span>
-            <span className="font-mono-tabular font-medium text-[#171614] truncate">
-              {firebaseUser.email}
+            <span className="font-mono-tabular font-medium text-[#FAF6F0] truncate">
+              {authEmail}
             </span>
           </div>
 
@@ -425,14 +409,14 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
             <button
               type="button"
               onClick={handleSignOut}
-              className="px-4 py-2.5 bg-[#1C1917] text-[#F8F7F4] text-xs font-medium rounded-lg hover:bg-[#2E2926] transition-colors cursor-pointer"
+              className="px-4 py-2.5 bg-[#D4A373] text-[#0B0908] text-xs font-semibold rounded-lg hover:bg-[#E09F5A] transition-colors cursor-pointer"
             >
               {t.admin.switchAccount}
             </button>
             <button
               type="button"
               onClick={() => onNavigate('/')}
-              className="px-4 py-2.5 border border-[#E5E0D8] text-xs font-medium text-[#171614] rounded-lg hover:bg-[#EDE9E0] transition-colors cursor-pointer"
+              className="px-4 py-2.5 border border-[#2A221D] text-xs font-medium text-[#FAF6F0] rounded-lg hover:bg-[#241D19] transition-colors cursor-pointer"
             >
               {t.admin.backToStore}
             </button>
@@ -444,24 +428,24 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
 
   // 4. Verified Admin Dashboard
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[#F8F7F4] py-8">
+    <main className="min-h-[calc(100vh-4rem)] bg-[#0B0908] py-8 text-[#FAF6F0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Top Bar Contract for Console */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#E5E0D8]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#241D19]">
           <div>
-            <p className="text-xs text-[#78716C] mb-1">
-              {t.admin.consoleTitle} · {firebaseUser.email}
+            <p className="text-xs text-[#9C8F84] mb-1">
+              {t.admin.consoleTitle} · {authEmail}
             </p>
-            <h1 className="font-display text-3xl font-semibold text-[#171614]">
+            <h1 className="font-display text-3xl font-semibold text-[#FAF6F0]">
               {timeGreeting}
             </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E5E0D8] rounded-lg text-xs font-medium text-[#171614]">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#161210] border border-[#2A221D] rounded-lg text-xs font-medium text-[#FAF6F0]">
               <Radio
                 className={`w-3.5 h-3.5 ${
-                  streamConnected ? 'text-[#16A34A]' : 'text-[#D97706]'
+                  streamConnected ? 'text-[#4ADE80]' : 'text-[#E09F5A]'
                 }`}
               />
               <span>
@@ -473,7 +457,7 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
               type="button"
               onClick={fetchAdminData}
               disabled={loadingData}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E5E0D8] rounded-lg text-xs font-medium text-[#171614] hover:bg-[#EDE9E0] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#161210] border border-[#2A221D] rounded-lg text-xs font-medium text-[#FAF6F0] hover:border-[#D4A373] transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
               <span>{t.admin.orders.refresh}</span>
@@ -482,7 +466,7 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
             <button
               type="button"
               onClick={handleSignOut}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1C1917] text-[#F8F7F4] rounded-lg text-xs font-medium hover:bg-[#2E2926] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D4A373] text-[#0B0908] rounded-lg text-xs font-semibold hover:bg-[#E09F5A] transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>{t.admin.signOut}</span>
@@ -492,34 +476,34 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
 
         {/* KPI Summary Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-[#E5E0D8] rounded-xl p-5">
-            <p className="text-xs text-[#78716C] mb-2">{t.admin.kpis.revenue}</p>
-            <p className="font-mono-tabular text-2xl font-semibold text-[#171614]">
-              {formatCurrency(kpis.revenueCents)}
+          <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-5">
+            <p className="text-xs text-[#9C8F84] mb-2">{t.admin.kpis.revenue}</p>
+            <p className="font-mono-tabular text-2xl font-semibold text-[#E09F5A]">
+              {formatPrice(kpis.revenueCents, language)}
             </p>
           </div>
-          <div className="bg-white border border-[#E5E0D8] rounded-xl p-5">
-            <p className="text-xs text-[#78716C] mb-2">{t.admin.kpis.activeOrders}</p>
-            <p className="font-mono-tabular text-2xl font-semibold text-[#171614]">
+          <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-5">
+            <p className="text-xs text-[#9C8F84] mb-2">{t.admin.kpis.activeOrders}</p>
+            <p className="font-mono-tabular text-2xl font-semibold text-[#FAF6F0]">
               {kpis.activeCount}
             </p>
           </div>
-          <div className="bg-white border border-[#E5E0D8] rounded-xl p-5">
-            <p className="text-xs text-[#78716C] mb-2">{t.admin.kpis.completedOrders}</p>
-            <p className="font-mono-tabular text-2xl font-semibold text-[#171614]">
+          <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-5">
+            <p className="text-xs text-[#9C8F84] mb-2">{t.admin.kpis.completedOrders}</p>
+            <p className="font-mono-tabular text-2xl font-semibold text-[#FAF6F0]">
               {kpis.completedCount}
             </p>
           </div>
-          <div className="bg-white border border-[#E5E0D8] rounded-xl p-5">
-            <p className="text-xs text-[#78716C] mb-2">{t.admin.kpis.loginAttempts}</p>
-            <p className="font-mono-tabular text-2xl font-semibold text-[#171614]">
+          <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-5">
+            <p className="text-xs text-[#9C8F84] mb-2">{t.admin.kpis.loginAttempts}</p>
+            <p className="font-mono-tabular text-2xl font-semibold text-[#FAF6F0]">
               {kpis.logCount}
             </p>
           </div>
         </div>
 
         {/* Workspace Section Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#EDE9E0] border border-[#E5E0D8] rounded-lg w-fit max-w-full overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-[#161210] border border-[#2A221D] rounded-lg w-fit max-w-full overflow-x-auto">
           {(
             [
               { key: 'orders', label: t.admin.tabs.orders },
@@ -533,8 +517,8 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 activeTab === tab.key
-                  ? 'bg-white text-[#171614] shadow-xs'
-                  : 'text-[#57534E] hover:text-[#171614]'
+                  ? 'bg-[#D4A373] text-[#0B0908] font-semibold'
+                  : 'text-[#B8ABA0] hover:text-[#FAF6F0]'
               }`}
             >
               {tab.label}
@@ -551,8 +535,8 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                 onClick={() => setStatusFilter('all')}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   statusFilter === 'all'
-                    ? 'bg-[#1C1917] text-[#F8F7F4] border-[#1C1917]'
-                    : 'bg-white text-[#57534E] border-[#E5E0D8] hover:text-[#171614]'
+                    ? 'bg-[#D4A373] text-[#0B0908] border-[#D4A373] font-semibold'
+                    : 'bg-[#161210] text-[#B8ABA0] border-[#2A221D] hover:text-[#FAF6F0]'
                 }`}
               >
                 {t.admin.orders.filterAll}
@@ -564,8 +548,8 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                   onClick={() => setStatusFilter(st)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                     statusFilter === st
-                      ? 'bg-[#1C1917] text-[#F8F7F4] border-[#1C1917]'
-                      : 'bg-white text-[#57534E] border-[#E5E0D8] hover:text-[#171614]'
+                      ? 'bg-[#D4A373] text-[#0B0908] border-[#D4A373] font-semibold'
+                      : 'bg-[#161210] text-[#B8ABA0] border-[#2A221D] hover:text-[#FAF6F0]'
                   }`}
                 >
                   {t.admin.orders.statuses[st]}
@@ -574,15 +558,15 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
             </div>
 
             {filteredOrders.length === 0 ? (
-              <div className="bg-white border border-[#E5E0D8] rounded-xl p-12 text-center text-sm text-[#57534E]">
+              <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-12 text-center text-sm text-[#B8ABA0]">
                 {t.admin.orders.empty}
               </div>
             ) : (
-              <div className="bg-white border border-[#E5E0D8] rounded-xl overflow-hidden">
+              <div className="bg-[#161210] border border-[#2A221D] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-[#E5E0D8] bg-[#FAF9F6] text-xs font-medium text-[#78716C]">
+                      <tr className="border-b border-[#2A221D] bg-[#120E0C] text-xs font-medium text-[#9C8F84]">
                         <th className="py-3 px-4">{t.admin.orders.orderCol}</th>
                         <th className="py-3 px-4">{t.admin.orders.customerCol}</th>
                         <th className="py-3 px-4">{t.admin.orders.locationCol}</th>
@@ -592,45 +576,45 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                         <th className="py-3 px-4">{t.admin.orders.statusCol}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#F0ECE4] text-sm">
+                    <tbody className="divide-y divide-[#241D19] text-sm">
                       {filteredOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-[#FAF9F6] align-top">
-                          <td className="py-3.5 px-4 font-mono-tabular text-xs font-semibold text-[#171614] whitespace-nowrap">
+                        <tr key={order.id} className="hover:bg-[#1B1613] align-top">
+                          <td className="py-3.5 px-4 font-mono-tabular text-xs font-semibold text-[#D4A373] whitespace-nowrap">
                             {order.orderNumber}
                           </td>
                           <td className="py-3.5 px-4">
-                            <p className="font-medium text-[#171614]">{order.customerName}</p>
-                            <p className="font-mono-tabular text-xs text-[#78716C]">
+                            <p className="font-medium text-[#FAF6F0]">{order.customerName}</p>
+                            <p className="font-mono-tabular text-xs text-[#9C8F84]">
                               {order.customerPhone}
                             </p>
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-[#57534E]">
-                            <p className="font-medium text-[#171614]">
+                          <td className="py-3.5 px-4 text-xs text-[#B8ABA0]">
+                            <p className="font-medium text-[#FAF6F0]">
                               {order.deliveryType === 'table'
                                 ? t.admin.orders.tablePrefix
                                 : t.admin.orders.deliveryPrefix}
                               : {order.tableOrAddress}
                             </p>
                             {order.notes && (
-                              <p className="text-[#78716C] mt-1 max-w-xs">{order.notes}</p>
+                              <p className="text-[#9C8F84] mt-1 max-w-xs">{order.notes}</p>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-[#171614] space-y-1 min-w-[220px]">
+                          <td className="py-3.5 px-4 text-xs text-[#FAF6F0] space-y-1 min-w-[220px]">
                             {order.items.map((item) => (
                               <div key={item.id}>
                                 <span className="font-medium">
                                   {item.quantity}× {item.productName}
                                 </span>{' '}
-                                <span className="text-[#78716C]">
+                                <span className="text-[#9C8F84]">
                                   ({item.size} · {item.roastLevel} · {item.milkType} · {item.sugarLevel}%)
                                 </span>
                               </div>
                             ))}
                           </td>
-                          <td className="py-3.5 px-4 text-right font-mono-tabular text-xs font-semibold text-[#171614] whitespace-nowrap">
-                            {formatCurrency(order.totalCents)}
+                          <td className="py-3.5 px-4 text-right font-mono-tabular text-xs font-semibold text-[#E09F5A] whitespace-nowrap">
+                            {formatPrice(order.totalCents, language)}
                           </td>
-                          <td className="py-3.5 px-4 font-mono-tabular text-xs text-[#78716C] whitespace-nowrap">
+                          <td className="py-3.5 px-4 font-mono-tabular text-xs text-[#9C8F84] whitespace-nowrap">
                             {formatTimestamp(order.createdAt)}
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
@@ -641,14 +625,14 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                               onChange={(e) =>
                                 handleStatusChange(order.id, e.target.value as OrderStatus)
                               }
-                              className={`px-2.5 py-1.5 text-xs font-medium rounded-md border bg-white focus:outline-none cursor-pointer ${
+                              className={`px-2.5 py-1.5 text-xs font-medium rounded-md border bg-[#0B0908] focus:outline-none cursor-pointer ${
                                 order.status === 'completed'
-                                  ? 'border-[#16A34A] text-[#15803D]'
+                                  ? 'border-[#22C55E] text-[#4ADE80]'
                                   : order.status === 'cancelled'
-                                    ? 'border-[#DC2626] text-[#B91C1C]'
+                                    ? 'border-[#EF4444] text-[#F87171]'
                                     : order.status === 'ready'
-                                      ? 'border-[#8B5A2B] text-[#8B5A2B]'
-                                      : 'border-[#D8D1C5] text-[#171614]'
+                                      ? 'border-[#D4A373] text-[#D4A373]'
+                                      : 'border-[#2A221D] text-[#FAF6F0]'
                               }`}
                             >
                               {ORDER_STATUSES.map((st) => (
@@ -672,30 +656,32 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
         {activeTab === 'catalog' && (
           <section className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-2xl font-semibold text-[#171614]">
+              <h2 className="font-display text-2xl font-semibold text-[#FAF6F0]">
                 {t.admin.tabs.catalog}
               </h2>
-              <button
-                type="button"
-                onClick={() => setShowAddForm((prev) => !prev)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1C1917] text-[#F8F7F4] text-xs font-medium rounded-lg hover:bg-[#2E2926] transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t.admin.catalog.addButton}</span>
-              </button>
+              {idToken && !isSupabaseConfigured && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#D4A373] text-[#0B0908] text-xs font-semibold rounded-lg hover:bg-[#E09F5A] transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t.admin.catalog.addButton}</span>
+                </button>
+              )}
             </div>
 
             {showAddForm && (
               <form
                 onSubmit={handleCreateProduct}
-                className="bg-white border border-[#E5E0D8] rounded-xl p-6 space-y-4"
+                className="bg-[#161210] border border-[#2A221D] rounded-xl p-6 space-y-4"
               >
-                <h3 className="text-sm font-semibold text-[#171614]">
+                <h3 className="text-sm font-semibold text-[#FAF6F0]">
                   {t.admin.catalog.addTitle}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.nameEn}
                     </label>
                     <input
@@ -703,42 +689,42 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                       required
                       value={newNameEn}
                       onChange={(e) => setNewNameEn(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.nameRu}
                     </label>
                     <input
                       type="text"
                       value={newNameRu}
                       onChange={(e) => setNewNameRu(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.nameUz}
                     </label>
                     <input
                       type="text"
                       value={newNameUz}
                       onChange={(e) => setNewNameUz(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.category}
                     </label>
                     <select
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value as CoffeeCategory)}
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm bg-white"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     >
                       {COFFEE_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
@@ -748,7 +734,7 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.originEn}
                     </label>
                     <input
@@ -756,12 +742,12 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                       value={newOriginEn}
                       onChange={(e) => setNewOriginEn(e.target.value)}
                       placeholder="Ethiopia Sidamo"
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
-                      {t.admin.catalog.priceUsd}
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
+                      {t.admin.catalog.priceUsd} (USD)
                     </label>
                     <input
                       type="number"
@@ -770,14 +756,14 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                       required
                       value={newPriceUsd}
                       onChange={(e) => setNewPriceUsd(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm font-mono-tabular"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0] font-mono-tabular"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.descriptionEn}
                     </label>
                     <input
@@ -785,11 +771,11 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                       required
                       value={newDescriptionEn}
                       onChange={(e) => setNewDescriptionEn(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#57534E] mb-1">
+                    <label className="block text-xs text-[#B8ABA0] mb-1">
                       {t.admin.catalog.tastingNotesEn}
                     </label>
                     <input
@@ -797,7 +783,7 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                       value={newTastingEn}
                       onChange={(e) => setNewTastingEn(e.target.value)}
                       placeholder="Bergamot · Dark Chocolate"
-                      className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-[#0B0908] border border-[#2A221D] rounded-lg text-sm text-[#FAF6F0]"
                     />
                   </div>
                 </div>
@@ -806,7 +792,7 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                   <button
                     type="submit"
                     disabled={creatingProduct}
-                    className="px-5 py-2.5 bg-[#1C1917] text-[#F8F7F4] text-xs font-medium rounded-lg hover:bg-[#2E2926] transition-colors cursor-pointer"
+                    className="px-5 py-2.5 bg-[#D4A373] text-[#0B0908] text-xs font-semibold rounded-lg hover:bg-[#E09F5A] transition-colors cursor-pointer"
                   >
                     {creatingProduct ? t.admin.catalog.creating : t.admin.catalog.createProduct}
                   </button>
@@ -814,11 +800,11 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
               </form>
             )}
 
-            <div className="bg-white border border-[#E5E0D8] rounded-xl overflow-hidden">
+            <div className="bg-[#161210] border border-[#2A221D] rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[#E5E0D8] bg-[#FAF9F6] text-xs font-medium text-[#78716C]">
+                    <tr className="border-b border-[#2A221D] bg-[#120E0C] text-xs font-medium text-[#9C8F84]">
                       <th className="py-3 px-4">{t.admin.catalog.nameEn}</th>
                       <th className="py-3 px-4">{t.admin.catalog.category}</th>
                       <th className="py-3 px-4">{t.admin.catalog.originEn}</th>
@@ -826,19 +812,19 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                       <th className="py-3 px-4 text-right">{t.admin.catalog.toggleStock}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0ECE4] text-sm">
+                  <tbody className="divide-y divide-[#241D19] text-sm">
                     {products.map((p) => {
                       const suffix = language === 'ru' ? 'Ru' : language === 'uz' ? 'Uz' : 'En';
                       const localName = String(p[`name${suffix}` as keyof Product] ?? p.nameEn);
                       return (
-                        <tr key={p.id} className="hover:bg-[#FAF9F6]">
-                          <td className="py-3 px-4 font-medium text-[#171614]">{localName}</td>
-                          <td className="py-3 px-4 text-xs text-[#57534E]">
+                        <tr key={p.id} className="hover:bg-[#1B1613]">
+                          <td className="py-3 px-4 font-medium text-[#FAF6F0]">{localName}</td>
+                          <td className="py-3 px-4 text-xs text-[#B8ABA0]">
                             {t.menu.categories[p.category]}
                           </td>
-                          <td className="py-3 px-4 text-xs text-[#78716C]">{p.originEn}</td>
-                          <td className="py-3 px-4 text-right font-mono-tabular text-xs font-medium">
-                            {formatCurrency(p.basePriceCents)}
+                          <td className="py-3 px-4 text-xs text-[#9C8F84]">{p.originEn}</td>
+                          <td className="py-3 px-4 text-right font-mono-tabular text-xs font-medium text-[#E09F5A]">
+                            {formatPrice(p.basePriceCents, language)}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <button
@@ -846,8 +832,8 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
                               onClick={() => handleToggleStock(p)}
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer ${
                                 p.inStock
-                                  ? 'border-[#16A34A] text-[#15803D] bg-[#F0FDF4]'
-                                  : 'border-[#D8D1C5] text-[#57534E] bg-[#F8F7F4]'
+                                  ? 'border-[#22C55E] text-[#4ADE80] bg-[#0B0908]'
+                                  : 'border-[#2A221D] text-[#9C8F84] bg-[#0B0908]'
                               }`}
                             >
                               {p.inStock ? (
@@ -871,49 +857,49 @@ export function AdminPage({ onNavigate, onProductsChanged }: AdminPageProps) {
         {/* TAB 3: LOGIN AUDIT LOGS */}
         {activeTab === 'logs' && (
           <section className="space-y-4">
-            <h2 className="font-display text-2xl font-semibold text-[#171614]">
+            <h2 className="font-display text-2xl font-semibold text-[#FAF6F0]">
               {t.admin.logs.title}
             </h2>
 
             {logs.length === 0 ? (
-              <div className="bg-white border border-[#E5E0D8] rounded-xl p-10 text-center text-sm text-[#57534E]">
+              <div className="bg-[#161210] border border-[#2A221D] rounded-xl p-10 text-center text-sm text-[#B8ABA0]">
                 {t.admin.logs.empty}
               </div>
             ) : (
-              <div className="bg-white border border-[#E5E0D8] rounded-xl overflow-hidden">
+              <div className="bg-[#161210] border border-[#2A221D] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-[#E5E0D8] bg-[#FAF9F6] text-xs font-medium text-[#78716C]">
+                      <tr className="border-b border-[#2A221D] bg-[#120E0C] text-xs font-medium text-[#9C8F84]">
                         <th className="py-3 px-4">{t.admin.logs.emailCol}</th>
                         <th className="py-3 px-4">{t.admin.logs.nameCol}</th>
                         <th className="py-3 px-4">{t.admin.logs.statusCol}</th>
                         <th className="py-3 px-4 text-right">{t.admin.logs.timeCol}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#F0ECE4] text-sm">
+                    <tbody className="divide-y divide-[#241D19] text-sm">
                       {logs.map((entry) => (
-                        <tr key={entry.id} className="hover:bg-[#FAF9F6]">
-                          <td className="py-3 px-4 font-mono-tabular text-xs text-[#171614]">
+                        <tr key={entry.id} className="hover:bg-[#1B1613]">
+                          <td className="py-3 px-4 font-mono-tabular text-xs text-[#FAF6F0]">
                             {entry.email}
                           </td>
-                          <td className="py-3 px-4 text-xs text-[#57534E]">
+                          <td className="py-3 px-4 text-xs text-[#B8ABA0]">
                             {entry.displayName || '—'}
                           </td>
                           <td className="py-3 px-4 text-xs font-medium">
                             {entry.status === 'granted' ? (
-                              <span className="inline-flex items-center gap-1.5 text-[#15803D]">
+                              <span className="inline-flex items-center gap-1.5 text-[#4ADE80]">
                                 <ShieldCheck className="w-3.5 h-3.5" />
                                 <span>{t.admin.logs.granted}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 text-[#B45309]">
+                              <span className="inline-flex items-center gap-1.5 text-[#E09F5A]">
                                 <XCircle className="w-3.5 h-3.5" />
                                 <span>{t.admin.logs.denied}</span>
                               </span>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-right font-mono-tabular text-xs text-[#78716C] whitespace-nowrap">
+                          <td className="py-3 px-4 text-right font-mono-tabular text-xs text-[#9C8F84] whitespace-nowrap">
                             {formatTimestamp(entry.createdAt)}
                           </td>
                         </tr>

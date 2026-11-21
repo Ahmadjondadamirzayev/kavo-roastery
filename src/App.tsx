@@ -12,12 +12,14 @@ import { Footer } from './components/Footer';
 import { CustomizeModal } from './components/CustomizeModal';
 import { CartDrawer } from './components/CartDrawer';
 import { AdminPage } from './components/AdminPage';
+import { DEFAULT_COFFEE_CATALOG } from './data/defaultCatalog';
+import { fetchCatalogProducts } from './lib/dataService';
 import type { Product } from './types/coffee';
 
 function CoffeeShopApp() {
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname || '/');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [products, setProducts] = useState<Product[]>(DEFAULT_COFFEE_CATALOG);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -25,14 +27,12 @@ function CoffeeShopApp() {
     setLoadingProducts(true);
     setProductsError(null);
     try {
-      const response = await fetch('/api/products');
-      if (!response.ok) {
-        throw new Error('MENU_LOAD_FAILED');
+      const items = await fetchCatalogProducts();
+      if (items.length > 0) {
+        setProducts(items);
       }
-      const data = await response.json();
-      setProducts(data.products ?? []);
     } catch {
-      setProductsError('MENU_LOAD_FAILED');
+      // Keep pre-loaded DEFAULT_COFFEE_CATALOG visible on fallback
     } finally {
       setLoadingProducts(false);
     }
@@ -70,7 +70,7 @@ function CoffeeShopApp() {
   const isAdminRoute = currentPath.startsWith('/admin');
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F7F4] text-[#171614]">
+    <div className="min-h-screen flex flex-col bg-[#0B0908] text-[#FAF6F0]">
       <Header currentPath={currentPath} onNavigate={handleNavigate} />
 
       {isAdminRoute ? (

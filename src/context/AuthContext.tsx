@@ -1,10 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../lib/firebase';
+import { recordFallbackLoginLog } from '../lib/dataService';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import type { AuthSessionUser } from '../types/coffee';
 
 interface AuthContextValue {
   firebaseUser: User | null;
+  authEmail: string | null;
+  authDisplayName: string | null;
   sessionUser: AuthSessionUser | null;
   idToken: string | null;
   isAdmin: boolean;
@@ -18,8 +22,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const FALLBACK_ADMIN_EMAIL = (
+  import.meta.env.VITE_ADMIN_EMAIL || 'ahmadjondadamirzayev6@gmail.com'
+)
+  .trim()
+  .toLowerCase();
+
+function checkEmailIsAdmin(email?: string | null): boolean {
+  if (!email) return false;
+  return FALLBACK_ADMIN_EMAIL.split(',')
+    .map((s: string) => s.trim().toLowerCase())
+    .includes(email.trim().toLowerCase());
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [authDisplayName, setAuthDisplayName] = useState<string | null>(null);
   const [sessionUser, setSessionUser] = useState<AuthSessionUser | null>(null);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -28,6 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
 
   const verifyWithBackend = useCallback(async (user: User) => {
+    const email = user.email ?? '';
+    const displayName = user.displayName ?? email.split('@')[0];
+    setAuthEmail(email);
+    setAuthDisplayName(displayName);
+
     try {
       const token = await user.getIdToken();
       setIdToken(token);
@@ -40,23 +64,89 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
-      if (!response.ok) {
-        throw new Error('SESSION_VERIFY_FAILED');
+      if (response.ok) {
+        const data = await response.json();
+        setSessionUser(data.user ?? null);
+        setIsAdmin(Boolean(data.isAdmin));
+        setAuthError(null);
+        return;
       }
-
-      const data = await response.json();
-      setSessionUser(data.user ?? null);
-      setIsAdmin(Boolean(data.isAdmin));
+      throw new Error('BACKEND_UNAVAILABLE');
+    } catch {
+      // If deployed statically without Express backend, evaluate client session & record log
+      const admin = checkEmailIsAdmin(email);
+      setIsAdmin(admin);
+      setSessionUser({
+        id: 1,
+        uid: user.uid,
+        email,
+        displayName,
+        role: admin ? 'admin' : 'pending',
+      });
+      await recordFallbackLoginLog({
+        uid: user.uid,
+        email,
+        displayName,
+        status: admin ? 'granted' : 'denied',
+        userAgent: navigator.userAgent,
+      });
       setAuthError(null);
-    } catch (err) {
-      console.error('Failed to verify auth session:', err);
-      setSessionUser(null);
-      setIsAdmin(false);
-      setAuthError('SESSION_VERIFY_FAILED');
     }
   }, []);
 
   useEffect(() => {
+    if (isSupabaseConfigured && supabase) {
+      let mounted = true;
+
+      const syncSupabaseUser = async (sbUser: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null, token: string | null) => {
+        if (!mounted) return;
+        if (!sbUser || !sbUser.email) {
+          setAuthEmail(null);
+          setAuthDisplayName(null);
+          setIdToken(null);
+          setSessionUser(null);
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+        const email = sbUser.email;
+        const displayName = String(sbUser.user_metadata?.full_name ?? sbUser.user_metadata?.name ?? email.split('@')[0]);
+        const admin = checkEmailIsAdmin(email);
+        setAuthEmail(email);
+        setAuthDisplayName(displayName);
+        setIdToken(token);
+        setIsAdmin(admin);
+        setSessionUser({
+          id: 1,
+          uid: sbUser.id,
+          email,
+          displayName,
+          role: admin ? 'admin' : 'pending',
+        });
+        await recordFallbackLoginLog({
+          uid: sbUser.id,
+          email,
+          displayName,
+          status: admin ? 'granted' : 'denied',
+          userAgent: navigator.userAgent,
+        });
+        setLoading(false);
+      };
+
+      supabase.auth.getSession().then(({ data }) => {
+        syncSupabaseUser(data.session?.user ?? null, data.session?.access_token ?? null);
+      });
+
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        syncSupabaseUser(session?.user ?? null, session?.access_token ?? null);
+      });
+
+      return () => {
+        mounted = false;
+        sub.subscription.unsubscribe();
+      };
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
@@ -64,6 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await verifyWithBackend(user);
         setLoading(false);
       } else {
+        setAuthEmail(null);
+        setAuthDisplayName(null);
         setIdToken(null);
         setSessionUser(null);
         setIsAdmin(false);
@@ -78,6 +170,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSigningIn(true);
     setAuthError(null);
     try {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/admin',
+          },
+        });
+        if (error) throw error;
+        return;
+      }
+
       const result = await signInWithPopup(auth, googleAuthProvider);
       if (result.user) {
         await verifyWithBackend(result.user);
@@ -91,7 +194,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [verifyWithBackend]);
 
   const logout = useCallback(async () => {
-    await signOut(auth);
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    } else {
+      await signOut(auth);
+    }
+    setAuthEmail(null);
+    setAuthDisplayName(null);
     setIdToken(null);
     setSessionUser(null);
     setIsAdmin(false);
@@ -99,6 +208,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshToken = useCallback(async () => {
+    if (isSupabaseConfigured && supabase) {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token ?? null;
+      setIdToken(token);
+      return token;
+    }
     if (!firebaseUser) return null;
     const fresh = await firebaseUser.getIdToken(true);
     setIdToken(fresh);
@@ -109,6 +224,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         firebaseUser,
+        authEmail,
+        authDisplayName,
         sessionUser,
         idToken,
         isAdmin,

@@ -47,15 +47,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.18 }}
-              className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border shadow-sm text-sm font-medium ${
+              className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border shadow-lg text-sm font-medium ${
                 toast.variant === 'error'
-                  ? 'bg-[#FFF5F5] border-[#F2C6C6] text-[#9B1C1C]'
-                  : 'bg-[#1C1917] border-[#2E2926] text-[#F8F7F4]'
+                  ? 'bg-[#251212] border-[#5C2424] text-[#FCA5A5]'
+                  : 'bg-[#161210] border-[#332922] text-[#FAF6F0]'
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 {toast.variant === 'error' ? (
-                  <AlertCircle className="w-4 h-4 shrink-0 text-[#B91C1C]" />
+                  <AlertCircle className="w-4 h-4 shrink-0 text-[#F87171]" />
                 ) : (
                   <CheckCircle2 className="w-4 h-4 shrink-0 text-[#D4A373]" />
                 )}
@@ -64,7 +64,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismiss(toast.id)}
-                className="p-1 opacity-70 hover:opacity-100 transition-opacity shrink-0"
+                className="p-1 opacity-70 hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
                 aria-label="Dismiss"
               >
                 <X className="w-3.5 h-3.5" />
